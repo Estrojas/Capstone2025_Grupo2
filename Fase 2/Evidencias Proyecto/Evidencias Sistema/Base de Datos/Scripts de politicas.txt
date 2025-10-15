@@ -1,0 +1,114 @@
+-- Activa RLS
+
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE areas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE campus ENABLE ROW LEVEL SECURITY;
+
+-- Politicas para user_profiles
+
+
+-- Usuario ve su propio perfil
+create policy "View_Profile"
+on public.user_profiles
+for select
+to authenticated
+using (user_id = (select auth.uid())
+      or public.get_user_role((select auth.uid())) = 'admin');
+
+-- Usuario actualiza solo su perfil
+create policy "Edit_Profile"
+on public.user_profiles
+for update
+to authenticated
+using (user_id = (select auth.uid())
+      or public.get_user_role((select auth.uid())) = 'admin');
+
+-- Admin puede insertar usuarios
+create policy "Admin_Insert"
+on public.user_profiles
+for insert
+to authenticated
+with check (public.get_user_role((select auth.uid())) = 'admin');
+
+-- Admin puede eliminar usuarios
+create policy "Admin_Delete"
+on public.user_profiles
+for delete
+to authenticated
+using (public.get_user_role((select auth.uid())) = 'admin');
+
+
+-- Politicas para campus
+
+
+-- Todos pueden ver campus 
+CREATE POLICY "View_Campus"
+ON public.campus
+FOR SELECT
+TO authenticated
+USING (true);
+
+-- Admin puede modificar cualquier campus
+create policy "Admin_Campus_Update"
+on public.campus
+for update
+to authenticated
+using (public.get_user_role((select auth.uid())) = 'admin');
+
+-- Admin puede insertar campus
+create policy "Admin_Campus_Insert"
+on public.campus
+for insert
+to authenticated
+with check (public.get_user_role((select auth.uid())) = 'admin');
+
+-- Admin puede eliminar campus
+create policy "Admin_Campus_Delete"
+on public.campus
+for delete
+to authenticated
+using (public.get_user_role((select auth.uid())) = 'admin');
+
+
+-- Politicas para áreas
+
+
+-- Usuario y admin puede solo ver areas 
+CREATE POLICY "View_Area"
+ON public.areas
+FOR SELECT
+TO authenticated
+USING (true);
+
+-- Admin puede modificar cualquier areas
+create policy "Admin_Area_Update"
+on public.areas
+for update
+to authenticated
+using (public.get_user_role((select auth.uid())) = 'admin');
+
+-- Admin puede insertar areas
+create policy "Admin_Area_Insert"
+on public.areas
+for insert
+to authenticated
+with check (public.get_user_role((select auth.uid())) = 'admin');
+
+-- Admin puede eliminar areas
+create policy "Admin_Area_Delete"
+on public.areas
+for delete
+to authenticated
+using (public.get_user_role((select auth.uid())) = 'admin');
+
+
+-- Politicas para logs
+
+
+-- Todos pueden ver los logs 
+CREATE POLICY "View_Logs"
+ON logs
+FOR SELECT
+TO authenticated
+USING (true);
