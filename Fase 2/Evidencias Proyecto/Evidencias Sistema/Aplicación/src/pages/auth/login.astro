@@ -1,0 +1,182 @@
+---
+export const prerender = false;
+import { createServerSupabase } from "@/lib/supabase/supabaseServer";
+
+const supabase = createServerSupabase({ request: Astro.request, cookies: Astro.cookies });
+// Validar usuario verificado
+const { data: userData, error: userErr } = await supabase.auth.getUser();
+const user = userData?.user ?? null;
+if (userErr) console.warn("[login] supabase.auth.getUser error:", userErr.message);
+
+if (user) throw Astro.redirect("/dashboard");
+---
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet" />
+    <title>Admission Analytics</title>
+</head>
+
+
+<container title="Login">
+    <div class="login-container">
+        <!-- Fondo con imagen -->
+        <div class="login-background"></div>
+        
+        <!-- Overlay oscuro -->
+        <div class="login-overlay"></div>
+        
+        <!-- Card de Login -->
+        <div class="login-card-wrapper">
+            <div class="login-card">
+                
+                <!-- Logo o Título -->
+                <div class="text-center mb-8">
+                    <h1 class="text-3xl font-bold text-white mb-2">DuocUC®</h1>
+                    <p class="text-gray-300 text-sm">Admission Analytics</p>
+                </div>
+
+                <!-- Formulario -->
+                <form id="login-form" action="/api/auth/login" class="space-y-5" method="post" autocomplete="on" novalidate>
+                    
+                    <!-- Campo de Email -->
+                    <div>
+                        <label for="email" class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                            Correo Electrónico
+                        </label>
+                        <input 
+                            type="email" 
+                            id="email"
+                            name="email" 
+                            placeholder="ejemplo@duocuc.cl"
+                            required 
+                            autocomplete="username"
+                            class="w-full px-4 py-3 bg-gray-800/80 border border-gray-600 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                        />
+                    </div>
+
+                    <!-- Campo de Contraseña -->
+                    <div>
+                        <label for="password" class="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                            Contraseña
+                        </label>
+                        <input 
+                            type="password" 
+                            id="password"
+                            name="password" 
+                            placeholder="••••••••"
+                            required 
+                            autocomplete="current-password"
+                            class="w-full px-4 py-3 bg-gray-800/80 border border-gray-600 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                        />
+                    </div>
+
+                    <!-- Mensaje de Error -->
+                    <div id="login-error" class="hidden opacity-0 translate-y-1 bg-red-500 border border-red-400 text-white text-sm rounded-md p-2 mt-2 transition-all duration-300 ease-in-out"
+                        >
+                        <span id="error-message"></span>
+                        </div>
+
+
+                    <!-- Botón Ingresar -->
+                    <button 
+                        type="submit"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
+                    >
+                        Ingresar
+                    </button>
+
+                    <!-- Botón Restaurar Contraseña -->
+                    <!-- <button 
+                        type="button"
+                        onclick="window.location.href='/reset-password'"
+                        class="w-full bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold py-3 px-4 rounded-lg transition duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
+                    >
+                        Restaurar Contraseña
+                    </button> -->
+
+                </form>
+                
+
+                <!-- Footer -->
+                <div class="mt-6 text-center text-gray-400 text-xs">
+                    <p>© 2025 DuocUC®. Todos los derechos reservados.</p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+
+    <script is:inline type="module" src="/src/pages/auth/login.Client.ts"></script>
+
+<style>
+    /* Reset del Layout para esta página */
+    :global(body) {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .login-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .login-background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: url('/img/background-login.jpg');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        z-index: 1;
+    }
+
+    .login-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.4);
+        z-index: 2;
+    }
+
+    .login-card-wrapper {
+        position: relative;
+        z-index: 10;
+        width: 100%;
+        max-width: 28rem;
+        padding: 1rem;
+    }
+
+    .login-card {
+        background-color: rgba(17, 24, 39, 0.92);
+        backdrop-filter: blur(8px);
+        border-radius: 0.5rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        padding: 2rem;
+        border: 1px solid rgba(55, 65, 81, 0.5);
+    }
+
+    /* Asegurar que los inputs se vean bien */
+    #login-form input:focus {
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+</style>

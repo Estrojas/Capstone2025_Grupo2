@@ -1,0 +1,131 @@
+---
+// Tipado de las propiedades (usamos 'type' y la convención de tipos de la BD)
+type AreaCampusProps = {
+    campusList: { campus_id: number; campus_name: string }[];
+    areaList: { area_id: number; area_name: string }[];
+};
+
+// Extraemos las propiedades
+const { campusList = [], areaList = [] } = Astro.props as AreaCampusProps;
+---
+<div id="userform-alert" class="hidden p-3 rounded-lg mb-3"></div>
+
+<form id="userform" class="space-y-4">
+    <input type="text" name="names" placeholder="Nombres" required class="border p-2 w-full" />
+    <input type="text" name="last_name_1" placeholder="Apellido paterno" required class="border p-2 w-full" />
+    <input type="text" name="last_name_2" placeholder="Apellido materno (opcional)" class="border p-2 w-full" />
+    <input type="email" name="email" placeholder="Email" required class="border p-2 w-full" />
+    <input type="password" name="password" placeholder="Contraseña (mín. 6)" required minlength="6" class="border p-2 w-full" />
+
+    <select name="role" required class="border p-2 w-full">
+        <option value="user">Usuario</option>
+        <option value="admin">Administrador</option>
+        <option value="manager">Manager</option>
+    </select>
+
+    <select name="status" required class="border p-2 w-full">
+        <option value="active">Activo</option>
+        <option value="inactive">Inactivo</option>
+        <option value="pending">Pendiente</option>
+    </select>
+
+    {/* Seleccionar Área */}
+    <select name="area_id" class="border p-2 w-full">
+        <option value="">Seleccionar Área</option>
+        {areaList.map((a: any) => (
+            <option value={a.area_id}>
+                {a.area_name}
+            </option>
+        ))}
+    </select>
+    
+    {/* Seleccionar Campus */}
+    <select name="campus_id" class="border p-2 w-full">
+        <option value="">Seleccionar Campus</option>
+        {campusList.map((c: any) => (
+            <option value={c.campus_id}>
+                {c.campus_name}
+            </option>
+        ))}
+    </select>
+
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">
+        Crear Usuario
+    </button>
+</form>
+
+
+<script is:inline>
+    const form = document.getElementById('userform');
+    const alertBox = document.getElementById('userform-alert');
+
+    function showAlert(msg, type = 'success') {
+        alertBox.textContent = msg;
+        alertBox.className = 'p-3 rounded-lg mb-3 ' + (type === 'success'
+        ? 'bg-green-50 text-green-800'
+        : 'bg-red-50 text-red-800');
+        alertBox.classList.remove('hidden');
+    }
+    
+    // Función central para verificar si un valor de ID es nulo o vacío
+    function isNullOrEmpty(value) {
+        return value === '' || value === null || value === 'undefined';
+    }
+
+    form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const button = e.currentTarget.querySelector('button[type="submit"]');
+
+        alertBox.classList.add('hidden');
+        alertBox.textContent = '';
+        if (button) button.disabled = true; // Deshabilita el botón
+
+        const fd = new FormData(form);
+        
+        // Conversion de IDs
+        const areaIdValue = fd.get('area_id');
+        const campusIdValue = fd.get('campus_id');
+
+        const payload = {
+            names: fd.get('names'),
+            last_name_1: fd.get('last_name_1'),
+            last_name_2: fd.get('last_name_2') || '',
+
+            email: fd.get('email'),
+            password: fd.get('password'),
+
+            role: fd.get('role') || 'user',
+            status: fd.get('status') || 'active',
+
+            // Si el valor es vacío o null, enviamos null (lo que Zod espera para campos nullable)
+            area_id: isNullOrEmpty(areaIdValue) ? null : Number(areaIdValue),
+            campus_id: isNullOrEmpty(campusIdValue) ? null : Number(campusIdValue),
+        };
+
+        try {
+            const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data?.ok) {
+                const msg = data?.message || 'No se pudo crear el usuario';
+                showAlert(msg, 'error');
+                return;
+            }
+
+            showAlert('Usuario creado con éxito', 'success');
+            form.reset();
+
+            // Recargar la tabla de usuarios
+            location.reload();
+        } catch (err) {
+            showAlert('Error de red: ' + (err?.message || err), 'error');
+        } finally {
+            if (button) button.disabled = false; // Reactiva el botón
+        }
+    });
+    
+</script>

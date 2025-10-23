@@ -1,0 +1,37 @@
+---
+import Navbar from '@/components/common/Navbar.astro';
+import Sidebar from '@/components/common/Sidebar.astro';
+import '@/styles/global.css'
+
+// Tipamos las props (aunque en .astro es opcional)
+interface Props {
+	title?: string;
+}
+
+// Desestructuramos las props y establecemos un valor por defecto
+const { title = "Admission Analytics"} = Astro.props as Props;
+---
+
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="icon" type="image/svg+xml" href=" " />
+		<meta name="generator" content={Astro.generator} />
+		<!-- Flowbite -->
+		<link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet" />
+		
+		<title>{title}</title>
+	</head>
+	
+	<body class="bg-gray-50 dark:bg-gray-800">
+        <Navbar />
+        <Sidebar />
+		<div class="p-8 sm:ml-64"></div>
+		<main>
+            <slot />
+        </main>
+    </body>
+	<script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+</html>
