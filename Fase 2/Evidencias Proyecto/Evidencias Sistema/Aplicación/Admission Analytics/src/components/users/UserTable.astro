@@ -1,0 +1,115 @@
+---
+import { getSessionSafe } from "../../lib/supabase/supabaseServer.js"; // Usamos getSessionSafe
+import DeleteUserButton from "./DeleteUserButton.jsx"; // DeleteUserButton se movió a esta carpeta
+import type { ProfileWithRelations } from "../../types/Profile.js"; 
+import type { Profile } from "@/types/Profile"
+
+// Obtención de Sesión y Perfil (SSR)
+const { user: authUser, supabase } = await getSessionSafe({ request: Astro.request, cookies: Astro.cookies });
+
+let users: ProfileWithRelations[] = [];
+let error: any = null;
+let userRole: string | null = null; // inicializa rol nulo
+let userProfile: Profile | null = null; // obtener perfil
+
+if (authUser) {
+    const { data: profileData } = await supabase
+        .from("user_profiles")
+        .select("role")
+        .eq("user_id", authUser.id)
+        .maybeSingle()
+
+    userProfile = profileData as Profile | null;
+    userRole = userProfile?.role ?? null;
+}
+
+// Verificacion para ver la tabla
+const isAuthorized = userRole === 'admin' || userRole === 'manager';
+
+if (!authUser) {
+    // Esto debería ser atrapado por el middleware, pero es una buena práctica de seguridad
+    error = { message: "No autenticado." };
+} else if (!isAuthorized) {
+    error = { message: "Permiso denegado. Solo Admin o Manager pueden ver esta tabla." };
+} else {
+    // Consulta a Supabase
+    const { data: rawData, error: fetchError } = await supabase
+        .from("user_profiles")
+        .select(`
+            user_id,
+            names,
+            last_name_1,
+            last_name_2,
+            email,
+            role,
+            status,
+            area_id,
+            campus_id,
+            area:area_id ( area_name ),
+            campus:campus_id ( campus_name )
+        `)
+        .order("created_at", { ascending: false });
+
+    error = fetchError;
+
+    // Mapeo para normalizar los joins
+    if (rawData) {
+        users = rawData.map((u: any) => ({
+            ...u,
+            // Normalizamos el resultado del join: [ {name: 'X'} ] -> {name: 'X'} o null
+            area: Array.isArray(u.area) ? u.area[0] || null : u.area,
+            campus: Array.isArray(u.campus) ? u.campus[0] || null : u.campus,
+        })) as ProfileWithRelations[]; 
+    }
+}
+
+// Helper para refrescar Mantenido
+function refreshUser(){
+    location.reload();
+}
+---
+
+{error && (
+    <div class="p-3 rounded-lg mb-3 bg-red-50 text-red-800 border border-red-200">
+        Error de Acceso: {error.message}
+    </div>
+)}
+
+{/* La tabla solo se renderiza si está autorizada o si hay un error específico de 'No data' */}
+<div class="p-4 border-gray-200 border-dashed rounded-lg mt-6">
+    <h2 class="text-2xl font-bold mb-4 text-gray-800 dark:text-white">Gestión de Usuarios</h2>
+    <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+        <table class="w-full text-sm text-left text-gray-700 dark:text-gray-300">
+            <thead class="text-xs uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-300">
+                <tr>
+                    <th class="px-6 py-3">Acciones</th>
+                    <th class="px-6 py-3">Nombre</th>
+                    <th class="px-6 py-3">Email</th>
+                    <th class="px-6 py-3">Rol</th>
+                    <th class="px-6 py-3">Estado</th>
+                    <th class="px-6 py-3">Campus</th>
+                    <th class="px-6 py-3">Área</th>
+                </tr>
+            </thead>
+            <tbody>
+                {users.length > 0 ? (users.map((u) => (
+                    <tr class="bg-white border-b border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-600">
+                        <td class="px-6 py-4 space-x-3 whitespace-nowrap">
+                            <a href={`/edit-user/${u.user_id}`} class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Editar</a>
+                            {/* DeleteUserButton (Isla de React) */}
+                            <DeleteUserButton client:load userId={u.user_id} onDeleted={refreshUser} /> 
+                        </td>
+                        <td class="px-6 py-4">{u.names} {u.last_name_1} {u.last_name_2}</td>
+                        <td class="px-6 py-4">{u.email}</td>
+                        <td class="px-6 py-4">{u.role}</td>
+                        <td class="px-6 py-4">{u.status}</td>
+                        <td class="px-6 py-4">{u.campus?.campus_name ?? "Sin campus"}</td>
+                        <td class="px-6 py-4">{u.area?.area_name ?? "Sin área"}</td>
+                    </tr>))) : (
+                    <tr>
+                        <td class="px-6 py-4 text-center" colspan="7">{isAuthorized ? "No se encontraron usuarios." : "No tienes permisos para ver esta tabla."}</td>
+                    </tr>)}
+            </tbody>
+        </table>
+    </div>
+</div>

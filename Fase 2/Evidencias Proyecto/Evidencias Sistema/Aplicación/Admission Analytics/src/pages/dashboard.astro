@@ -1,0 +1,62 @@
+---
+export const prerender = false;
+
+import Layout from "@/layouts/Layout.astro";
+import { getSessionSafe } from "@/lib/supabase/supabaseServer"; 
+import Content from "@/components/Content.astro"; 
+import type { Profile } from "@/types/Profile";
+
+
+// Usamos getSessionSafe para obtener el cliente y la sesión/usuario de Auth
+const { user, supabase, error: sessionError } = await getSessionSafe({ request: Astro.request, cookies: Astro.cookies });
+
+if (sessionError) {
+    console.warn("[dashboard] Error en getSessionSafe:", sessionError.message);
+}
+
+// obtener perfil
+let profile: Profile | null = null;
+if (user) {
+    const { data: profileData } = await supabase
+        .from("user_profiles")
+        // Obtenemos los campos que necesita la UI
+        .select("names, role, status, area_id") 
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+    profile = profileData as Profile | null;
+}
+
+const displayProfile = profile || user; // objeto visual
+const hasNames = displayProfile && 'names' in displayProfile && displayProfile.names; // verificamos que exista name
+
+const welcomeName = hasNames 
+    ? hasNames // Si tiene nombre, lo usamos
+    : displayProfile?.email?.split('@')[0] || 'Invitado'; // Si no, usamos el email o Invitado
+---
+
+<Layout title="Dashboard de Admisión">
+    
+    <div class="p-4 sm:ml-64"> 
+        <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Bienvenido, {welcomeName}</h1>
+
+        {user ? (
+            <Content />
+        ) : (<p class="text-xl text-red-500">Error: Sesión no válida. Redireccionando...</p>
+        )}
+        
+        {/* Sección de debug*/}
+        <div class="mt-8 p-4 rounded-xl bg-gray-100 dark:bg-gray-700 shadow-inner text-sm">
+            <h2 class="font-bold text-lg mb-2 text-gray-800 dark:text-gray-200">Detalles de Sesión (Debug)</h2>
+            <p><strong>Email:</strong> {user?.email ?? "-"}</p>
+            <p><strong>Rol:</strong> {profile?.role ?? "-"}</p>
+            <p><strong>Estado:</strong> {profile?.status ?? "-"}</p>
+            <p><strong>ID (Auth):</strong> {user?.id ?? "-"}</p>
+            
+            <div class="mt-4 flex gap-3">
+                <a href="/user" class="text-blue-600 hover:text-blue-500 underline">Ir a Gestión de Usuarios</a>
+                <a href="/auth/logout" class="text-red-600 hover:text-red-500 underline">Cerrar Sesión</a>
+            </div>
+        </div>
+    </div>
+</Layout>
