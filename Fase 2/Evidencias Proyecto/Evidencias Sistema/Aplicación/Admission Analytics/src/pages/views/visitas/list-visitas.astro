@@ -1,0 +1,23 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import CardData from "@/components/ui/card_data.astro";
+import ListaVisitas from "@/components/ui/lista-visitas.jsx";
+
+---
+
+<Layout title="Comunas">
+    <div class="bg-gray-100 min-h-screen">
+        <ListaVisitas client:load />
+    </div>
+
+
+</Layout>
+
+<style>
+    .bg-blue-custom {
+      background-color: #1E7DE8;
+    }
+</style>
+
+
+  

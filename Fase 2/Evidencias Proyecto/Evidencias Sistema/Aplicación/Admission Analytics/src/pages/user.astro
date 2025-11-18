@@ -1,0 +1,91 @@
+---
+export const prerender = false;
+
+import Layout from '@/layouts/Layout.astro';
+import { getSessionSafe } from '@/lib/supabase/supabaseServer'; 
+import UserTable from '@/components/users/UserTable.astro'; 
+import UserForm from '@/components/forms/UserForm.astro'; 
+import type { UserRole, Profile } from '@/types/Profile'; 
+
+
+const { user: authUser, supabase, error: sessionError } = await getSessionSafe({ request: Astro.request, cookies: Astro.cookies });
+
+// Lógica para obtener el perfil (similar a Dashboard)
+let profile: Profile | null = null;
+if (authUser) {
+    const { data: profileData } = await supabase
+        .from("user_profiles")
+        .select("names, role, status, area_id")
+        .eq("user_id", authUser.id)
+        .maybeSingle();
+
+    profile = profileData as Profile | null;
+}
+
+// Si no hay sesión o el rol no está autorizado, redirige.
+const isAuthorized = profile?.status === 'active' && ['admin', 'manager'].includes(profile.role as UserRole);
+
+// Redirige si la sesión no es válida o no está autorizado
+if (!authUser || !isAuthorized) {
+    // Si no tiene permisos, lo mandamos al dashboard
+    if (authUser) {
+        throw Astro.redirect('/'); 
+    }
+    // Si no tiene sesión, lo mandamos al login (la ruta es /auth/login)
+    throw Astro.redirect('/auth/login'); 
+}
+
+
+const baseURL = Astro.url.origin; 
+
+// carga de campus y areas
+const res = await fetch(`${baseURL}/api/auth/lookup`, {
+    method: 'GET',
+    headers: {
+        // Requerido para autenticación en el endpoint
+        Cookie: Astro.request.headers.get('cookie') || '', 
+    },
+});
+
+const lookupData = res.ok ? await res.json() : { campus: [], areas: [] };
+const campusList = lookupData.campus || []; 
+const areaList = lookupData.areas || [];
+---
+<Layout title="Gestión de Usuarios">
+    <div class="border-gray-200 border-dashed rounded-lg">
+        <h1 class="text-2xl font-bold text-black mb-4">Panel de Administración de Usuarios</h1>
+        <p class="p-1 mt-2 text-black">Apartado para agregar usuarios</p>
+
+        <button
+            data-modal-target="createUserModal"
+            data-modal-toggle="createUserModal"
+            type="button"
+            class="px-6 py-2 text-base sm:ml-32 font-medium text-center inline-flex items-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300">
+            <svg class="w-6 h-6 mr-2" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                <path fill-rule="evenodd" d="M9 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm-2 9a4 4 0 0 0-4 4v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1a4 4 0 0 0-4-4H7Zm8-1a1 1 0 0 1 1-1h1v-1a1 1 0 1 1 2 0v1h1a1 1 0 1 1 0 2h-1v1a1 1 0 1 1-2 0v-1h-1a1 1 0 0 1-1-1Z" clip-rule="evenodd"/>
+            </svg>
+            Agregar Usuario
+        </button>
+
+        <div id="createUserModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 w-full h-full overflow-y-auto">
+            <div class="relative p-4 w-full max-w-md m-auto">
+                <div class="relative rounded-lg shadow" style="background-color: #083560;" >
+                    <div class="flex items-center justify-between p-4 border-b rounded-t">
+                        <h3 class="text-lg font-semibold text-white align-center" >Crear Usuario</h3>
+                        <button type="button" class="text-white hover:text-red rounded-lg text-sm p-1.5 ml-auto inline-flex items-center" data-modal-hide="createUserModal">
+                            ✕
+                        </button>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <UserForm campusList={campusList} areaList={areaList}/>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-8">
+            <UserTable />
+        </div>
+        
+    </div>
+</Layout>
