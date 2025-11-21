@@ -1,0 +1,71 @@
+---
+import Navbar from "@/components/common/Navbar.astro";
+import Sidebar from "@/components/common/Sidebar.astro";
+import "@/styles/global.css";
+import { ClientRouter, fade } from "astro:transitions";
+
+interface Props {
+  title?: string;
+}
+
+const { title = "admission analytics" } = Astro.props as Props;
+---
+
+<!doctype html>
+<html lang="es" style="background-color: #e6e6e6;">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/img/icono.png" />
+    <meta name="generator" content={Astro.generator} />
+    <link href="/terceros/flowbite.min.css" rel="stylesheet"/>
+
+    <title>{title}</title>
+    <ClientRouter />
+  </head>
+
+  <body style="background-color: #e6e6e6;">
+    <!-- barra superior fija -->
+    <Navbar />
+
+    <!-- sidebar fijo a la izquierda -->
+    <Sidebar />
+
+    <!-- wrapper principal del contenido -->
+    <!-- pt-20: empuja el contenido hacia abajo para que no quede debajo del navbar fijo -->
+    <!-- sm:ml-64: deja espacio para el sidebar fijo en pantallas >= sm -->
+    <!-- p-4: padding interno estándar -->
+    <main class="pt-20 sm:ml-64 p-4" transition:animate="fade">
+      <slot />
+    </main>
+
+    <!-- para modales -->
+    <slot name="modals" />
+
+    <!-- defer para cargar flowbite, y is:inline para que se ejecute en el cliente -->
+    <script is:inline src="/terceros/flowbite.min.js" defer></script> 
+
+    <!-- re-inicializar Flowbite después de los cambios de ruta -->
+    <script is:inline>
+      const attachFlowbite = () => { // funcion para inicializar
+        if (window.initFlowbite) { // verifica si la funcion existe
+          window.initFlowbite(); // llama a la funcion de inicializacion
+        }
+      };
+
+      // primer render (por si acaso)
+      if (document.readyState === "loading") { // si el DOM no esta listo
+        document.addEventListener("DOMContentLoaded", attachFlowbite); // espera al evento DOMContentLoaded
+      } else { // si ya esta listo
+        attachFlowbite(); // llama inmediatamente
+      }
+
+      // Cada vez que Astro hace un swap de página
+      document.addEventListener("astro:after-swap", () => { // evento después de un cambio de página
+        attachFlowbite(); // re-inicializa flowbite
+      });
+    </script>
+
+  </body>
+</html>
+

@@ -1,0 +1,17 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import ListaVisitas from "@/components/ui/lista-visitas.jsx";
+
+---
+
+<Layout title="Registro de Visitas">
+    <div class="bg-gray-100 min-h-screen">
+        <ListaVisitas client:load />
+    </div>
+</Layout>
+
+<style>
+    .bg-blue-custom {
+        background-color: #1E7DE8;
+    }
+</style>

@@ -1,0 +1,73 @@
+---
+export const prerender = false;
+import Layout from "@/layouts/Layout.astro";
+import { getSessionSafe } from "@/lib/supabase/supabaseServer.js"; 
+import type { ProfileWithRelations } from "@/types/Profile.js"; 
+import EditUserForm from "@/components/users/EditUserForm.jsx"; 
+
+const { params, request, cookies } = Astro; // Obtener el user_id de los parámetros de la ruta
+const user_id = params.user_id;  // ID del usuario a editar
+const { supabase } = await getSessionSafe({ request, cookies }); // Inicializar Supabase con sesión segura
+
+// Consulta del Usuario
+const { data: userDataRaw, error: userError } = await supabase
+    .from("user_profiles")
+    .select(`
+        user_id,
+        names,
+        last_name_1,
+        last_name_2,
+        email,
+        role,
+        status,
+        area_id,
+        campus_id,
+        campus:campus_id ( campus_name ),
+        area:area_id ( area_name )`)
+    .eq("user_id", user_id)
+    .maybeSingle();
+
+// Consulta de Listas de Catálogos (sin cambios)
+const { data: campusList, error: campusErr } = await supabase.from("campus").select("campus_id, campus_name").order("campus_name");
+const { data: areaList, error: areaErr } = await supabase.from("areas").select("area_id, area_name").order("area_name");
+
+// Casteamos el resultado bruto antes de normalizar
+const userDataBruto = userDataRaw as ProfileWithRelations | null; 
+
+const userData = userDataBruto ? ({
+    // Spread solo si userDataBruto NO es null
+    ...userDataBruto, 
+    // Normalizamos la relación de joins a objeto o nul
+    campus: Array.isArray(userDataBruto.campus) ? userDataBruto.campus[0] || null : userDataBruto.campus,
+    area: Array.isArray(userDataBruto.area) ? userDataBruto.area[0] || null : userDataBruto.area,
+}) : null;
+
+// mensajes de error para debug
+if (userError) console.error("Error cargando usuario:", userError);
+if (campusErr) console.error("Error cargando campus:", campusErr);
+if (areaErr) console.error("Error cargando áreas:", areaErr);
+
+
+// Tipado final de las listas para el componente React (convertir a string para selects)
+const finalCampusList = (campusList || []).map(c => ({...c, campus_id: String(c.campus_id)}));
+const finalAreaList = (areaList || []).map(a => ({...a, area_id: String(a.area_id)}));
+
+---
+
+<Layout title={`Editar Usuario:  ${userData ? userData.names + ' ' + userData.last_name_1 : ''}`}>
+    <h1 class="text-2xl font-bold text-black mb-4">Editar Usuario</h1>
+
+    {userError && (
+        <div class="p-3 rounded-lg mb-3 bg-red-50 text-red-800">
+            Error: {userError.message}
+        </div>
+    )}
+
+    {userData ? (
+        <EditUserForm 
+            userData={userData as ProfileWithRelations} // Aseguramos el tipo final para React
+            campusList={finalCampusList} areaList={finalAreaList} client:load/>
+    ) : (
+        <p class="text-gray-500">No se encontró el usuario con ID: {user_id}.</p>
+    )}
+</Layout>

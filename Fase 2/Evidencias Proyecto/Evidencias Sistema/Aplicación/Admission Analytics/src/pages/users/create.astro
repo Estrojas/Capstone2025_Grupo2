@@ -1,0 +1,62 @@
+---
+export const prerender = false;
+
+import Layout from "@/layouts/Layout.astro";
+import { getSessionSafe } from "@/lib/supabase/supabaseServer";
+import type { UserRole, Profile } from "@/types/Profile";
+import UserForm from "@/components/users/UserForm.jsx"; 
+
+const { user: authUser, supabase, error: sessionError } = await getSessionSafe({
+    request: Astro.request,
+    cookies: Astro.cookies,
+});
+
+// cargar perfil
+let profile: Profile | null = null;
+if (authUser) {
+    const { data: profileData } = await supabase
+        .from("user_profiles")
+        .select("names, role, status, area_id")
+        .eq("user_id", authUser.id)
+        .maybeSingle();
+
+    profile = profileData as Profile | null;
+}
+
+if (sessionError) {
+    console.warn("[users/create] Error en getSessionSafe:", sessionError.message);
+}
+
+// autorización
+const isAuthorized =
+    profile?.status === "active" &&
+    ["admin", "manager"].includes(profile.role as UserRole);
+
+if (!authUser || !isAuthorized) {
+    if (authUser) {
+        throw Astro.redirect("/");
+    }
+    throw Astro.redirect("/auth/login");
+}
+
+const baseURL = Astro.url.origin;
+
+const res = await fetch(`${baseURL}/api/auth/lookup`, {
+    method: "GET",
+    headers: {
+        Cookie: Astro.request.headers.get("cookie") || "",
+    },
+});
+
+const lookupData = res.ok ? await res.json() : { campus: [], areas: [] };
+const campusList = lookupData.campus || [];
+const areaList = lookupData.areas || [];
+---
+
+<Layout title="Crear Usuario">
+    <div class="border-gray-200 border-dashed rounded-lg">
+        <h1 class="text-2xl font-bold text-black mb-4">Crear Nuevo Usuario</h1>
+    
+        <UserForm client:load campusList={campusList} areaList={areaList} />
+    </div>
+</Layout>

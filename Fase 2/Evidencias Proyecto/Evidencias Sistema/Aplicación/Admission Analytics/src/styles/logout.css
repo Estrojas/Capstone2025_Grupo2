@@ -1,0 +1,54 @@
+:global(body) {
+    margin: 0;
+    padding: 0;
+    /* Fondo principal en negro */
+    background-color: #ffffff; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Ocultar elementos estructurales innecesarios en esta pantalla */
+:global(nav), :global(aside) {
+    display: none !important;
+}
+
+/* Contenedor y tarjeta */
+.logout-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    text-align: center;
+}
+
+.logout-card {
+    background-color: rgba(17, 24, 39, 0.95); /* Negro/Gris Oscuro con transparencia */
+    backdrop-filter: blur(5px);
+    border-radius: 1rem;
+    padding: 4rem 2rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+    border: 2px solid rgba(59, 130, 246, 0.5); /* Borde Azul (blue) */
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Loaders */
+.loader-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    height: 80px;
+}
